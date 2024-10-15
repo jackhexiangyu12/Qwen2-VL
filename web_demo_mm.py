@@ -13,8 +13,8 @@ import torch
 from qwen_vl_utils import process_vision_info
 from transformers import AutoProcessor, Qwen2VLForConditionalGeneration, TextIteratorStreamer
 
-DEFAULT_CKPT_PATH = 'Qwen/Qwen2-VL-7B-Instruct'
 
+DEFAULT_CKPT_PATH = 'Qwen/Qwen2-VL-7B-Instruct'
 
 def _get_args():
     parser = ArgumentParser()
@@ -28,11 +28,11 @@ def _get_args():
 
     parser.add_argument('--flash-attn2',
                         action='store_true',
-                        default=False,
+                        default=True,
                         help='Enable flash_attention_2 when loading the model.')
     parser.add_argument('--share',
                         action='store_true',
-                        default=False,
+                        default=True,
                         help='Create a publicly shareable link for the interface.')
     parser.add_argument('--inbrowser',
                         action='store_true',
@@ -60,7 +60,12 @@ def _load_model_processor(args):
     else:
         model = Qwen2VLForConditionalGeneration.from_pretrained(args.checkpoint_path, device_map=device_map)
 
-    processor = AutoProcessor.from_pretrained(args.checkpoint_path)
+    min_pixels = 256 * 28 * 28
+    max_pixels = 1280 * 28 * 28
+    processor = AutoProcessor.from_pretrained(
+        args.checkpoint_path, min_pixels=min_pixels, max_pixels=max_pixels
+    )
+    # processor = AutoProcessor.from_pretrained()
     return model, processor
 
 
@@ -177,8 +182,12 @@ def _launch_demo(args, model, processor):
                 if isinstance(q, (tuple, list)):
                     if _is_video_file(q[0]):
                         content.append({'video': f'file://{q[0]}'})
+                        content.append({'resized_height: 280'})
+                        content.append({'resized_width: 420'})
                     else:
                         content.append({'image': f'file://{q[0]}'})
+                        content.append({'resized_height: 280'})
+                        content.append({'resized_width: 420'})
                 else:
                     content.append({'text': q})
                     messages.append({'role': 'user', 'content': content})
